@@ -7,6 +7,12 @@ if exists("g:loaded_async_grep") || !has('nvim')
   finish
 endif
 let g:loaded_async_grep = 1
+if !exists("g:async_grep_lopen") 
+let g:async_grep_lopen = 'lopen'
+endif
+if !exists("g:async_grep_copen") 
+let g:async_grep_copen = 'copen'
+endif
 
 
 let s:job_cid = 0
@@ -24,7 +30,7 @@ function s:GrepJobHandler_Q(job_id, data, event)
     execute 'cgetfile ' .  temp_file
     " Delete the temporary file.
     execute 'silent !rm ' . temp_file
-    copen
+    execute g:async_grep_copen
   endif
 endfunction
 
@@ -37,7 +43,7 @@ function s:GrepJobHandler_L(job_id, data, event)
     execute 'lgetfile ' .  temp_file
     " Delete the temporary file.
     execute 'silent !rm ' . temp_file
-    lopen
+    execute g:async_grep_lopen
   endif
 endfunction
 
