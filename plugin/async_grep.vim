@@ -23,27 +23,25 @@ let s:jobs = {}
 " Handler to load the grep results into the quickfix list.
 " TODO: Clean the script to avoid the duplication with `_L` and `_Q` suffixes.
 function s:GrepJobHandler_Q(job_id, data, event)
-  let job_cid = s:jobs[a:job_id]
+  if a:event == 'stdout' || a:event == 'stderr'
+      for line in a:data
+          caddexpr line
+        endfor
+  endif
   if a:event == 'exit'
-    let temp_file = TempFile(job_cid)
-    " Load the results in the quickfix list.
-    execute 'cgetfile ' .  temp_file
-    " Delete the temporary file.
-    execute 'silent !rm ' . temp_file
-    execute g:async_grep_copen
+      execute g:async_grep_copen
   endif
 endfunction
 
 " Same as above, but in the location list.
 function s:GrepJobHandler_L(job_id, data, event)
-  let job_cid = s:jobs[a:job_id]
+  if a:event == 'stdout' || a:event == 'stderr'
+      for line in a:data
+          laddexpr line
+        endfor
+  endif
   if a:event == 'exit'
-    let temp_file = TempFile(job_cid)
-    " Load the results in the location-list.
-    execute 'lgetfile ' .  temp_file
-    " Delete the temporary file.
-    execute 'silent !rm ' . temp_file
-    execute g:async_grep_lopen
+      execute g:async_grep_lopen
   endif
 endfunction
 
@@ -61,26 +59,21 @@ let s:callbacks_L = {
 \ }
 
 
-function! TempFile(job_cid)
-  return '/tmp/neovim_async_grep.tmp.' . getpid() . '.' . a:job_cid
-endfunction
-
-
 function! StartGrepJob(loclist, ...)
   let s:job_cid = s:job_cid + 1
 
-  let base_command = &grepprg . ' ' . join(a:000, ' ')
-  let redirection = ' &> ' . TempFile(s:job_cid)
-  let command = base_command . redirection
+  let command = &grepprg . ' ' . join(a:000, ' ')
 
   if a:loclist == 1
+    lexpr ""
     let grep_job = jobstart(command, s:callbacks_L)
   else
+    cexpr ""
     let grep_job = jobstart(command, s:callbacks_Q)
   endif
 
   let s:jobs[grep_job] = s:job_cid
-  echo 'Started: ' . base_command
+  echo 'Started: ' . command
 endfunction
 
 command! -nargs=* -complete=dir Grep call StartGrepJob(0, <f-args>)
